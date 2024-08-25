@@ -1,10 +1,10 @@
 package http
 
 import (
+	log "ddd/logger"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -61,6 +61,8 @@ func (c *Client) setBaseURL(urlStr string) error {
 }
 
 func (c *Client) NewRequest(method, path string) (*http.Request, error) {
+	log.Info("heia")
+	log.Error("heia2")
 	u := *c.baseURL
 	unescaped, err := url.PathUnescape(path)
 	if err != nil {
@@ -95,7 +97,6 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 
 	err = checkResponse(resp)
 	if err != nil {
-		log.Println("check response")
 		return nil, err
 	}
 
