@@ -3,6 +3,7 @@ package logger
 import (
 	"log"
 	"os"
+	"strings"
 )
 
 var (
@@ -12,7 +13,7 @@ var (
 )
 
 func init() {
-	debugLogger = log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+	debugLogger = log.New(os.Stdout, "DEBUG\t", log.Ldate|log.Ltime|log.Lshortfile)
 	errorLogger = log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 	infoLogger = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 }
@@ -26,8 +27,8 @@ func Error(format string, v ...interface{}) {
 }
 
 func Debug(format string, v ...interface{}) {
-	_, ok := os.LookupEnv("DEBUG")
-	if ok {
+	d, _ := os.LookupEnv("DEBUG")
+	if strings.EqualFold(d, "true") {
 		debugLogger.Printf(format, v...)
 	}
 }

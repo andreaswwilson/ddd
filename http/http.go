@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	log "ddd/logger"
 	"encoding/json"
 	"fmt"
@@ -61,8 +62,6 @@ func (c *Client) setBaseURL(urlStr string) error {
 }
 
 func (c *Client) NewRequest(method, path string) (*http.Request, error) {
-	log.Info("heia")
-	log.Error("heia2")
 	u := *c.baseURL
 	unescaped, err := url.PathUnescape(path)
 	if err != nil {
@@ -95,6 +94,15 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 	defer resp.Body.Close()
 	defer io.Copy(io.Discard, resp.Body)
 
+	log.Debug("%s request %s", req.Method, req.URL.String())
+	if resp.Body != nil {
+		var bodyBytes []byte
+		// Read data
+		bodyBytes, _ = io.ReadAll(resp.Body)
+		// Restore the io.ReadCloser to its original state
+		resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		log.Debug("response body: %s", bodyBytes)
+	}
 	err = checkResponse(resp)
 	if err != nil {
 		return nil, err

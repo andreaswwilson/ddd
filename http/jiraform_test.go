@@ -3,7 +3,6 @@ package http
 import (
 	"ddd"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -56,7 +55,7 @@ func TestGetJiraForm(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			t.Parallel()
-			server := setupTestServer(test.jsonResponse)
+			server := setupTestServer(test.jsonResponse, http.StatusOK)
 			defer server.Close()
 
 			js, _ := NewJiraFormService("", WithBaseURL(server.URL))
@@ -66,13 +65,4 @@ func TestGetJiraForm(t *testing.T) {
 			assert.Equal(t, test.expected, actual)
 		})
 	}
-}
-
-func setupTestServer(jsonResponse string) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		if _, err := w.Write([]byte(jsonResponse)); err != nil {
-			panic(err)
-		}
-	}))
 }
