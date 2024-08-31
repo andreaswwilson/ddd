@@ -21,7 +21,7 @@ type Client struct {
 	token   string
 }
 
-func NewClient(token string, options ...ClientOptionFunc) (*Client, error) {
+func newClient(token string, options ...ClientOptionFunc) (*Client, error) {
 	c := &Client{
 		token: token,
 	}

@@ -9,8 +9,71 @@ import (
 	"strings"
 )
 
-type JiraFormService struct {
+// Make sure the service implements all methods
+var _ ddd.JiraFormService = (*Service)(nil)
+
+type Service struct {
 	Client *Client
+}
+
+func NewService(token string, options ...ClientOptionFunc) (*Service, error) {
+	client, err := newClient(token, options...)
+	if err != nil {
+		return nil, err
+	}
+	return &Service{Client: client}, nil
+}
+
+func (service Service) Get(key string) (*ddd.JiraForm, error) {
+	response := []jiraFormResponse{}
+	jiraForm := jiraForm{}
+	path := fmt.Sprintf("jira/%s", key)
+	request, err := service.Client.NewRequest(http.MethodGet, path)
+	request.Header.Add("Accept", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = service.Client.Do(request, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	// Unpack the data from jira since each input is wrapped inside a jiraFormResponse
+	jsonData := make(map[string]string)
+	for _, item := range response {
+		jsonData[item.QuestionKey] = strings.TrimSpace(item.Answer)
+	}
+	// Turn the map into a json object so that we can unmarshal it into the jiraForm struct
+	jsonBytes, err := json.Marshal(jsonData)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(jsonBytes, &jiraForm)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ddd.JiraForm{
+		BudgetAmount:                 jiraForm.BudgetAmount,
+		BudgetContact:                jiraForm.BudgetContact,
+		EntraIDName:                  jiraForm.EntraIDName,
+		Kostnadsoppfolger:            jiraForm.Kostnadsoppfolger,
+		L2Approver:                   jiraForm.L2Approver,
+		ManagementTree:               jiraForm.ManagementTree,
+		Environment:                  jiraForm.Environment,
+		SubscriptionName:             jiraForm.SubscriptionName,
+		VNetSize:                     jiraForm.VNetSize,
+		BusinessBestillerReferanse:   jiraForm.BusinessBestillerReferanse,
+		BusinessOrg:                  jiraForm.BusinessOrg,
+		CreateNewPIM:                 jiraForm.CreateNewPIM,
+		EntraIDGroup:                 jiraForm.EntraIDGroup,
+		Finansiering:                 jiraForm.Finansiering,
+		FinansieringVedProsjektslutt: jiraForm.FinansieringVedProsjektslutt,
+		Forretningsprodukt:           jiraForm.Forretningsprodukt,
+		ManagementGroup:              jiraForm.ManagementGroup,
+		SecurityContact:              jiraForm.SecurityContact,
+	}, nil
 }
 
 type jiraFormResponse struct {
@@ -71,68 +134,4 @@ func (jf *jiraForm) UnmarshalJSON(data []byte) error {
 		jf.VNetSize = vnet
 	}
 	return nil
-}
-
-func NewJiraFormService(token string, options ...ClientOptionFunc) (*JiraFormService, error) {
-	service := &JiraFormService{}
-
-	client, err := NewClient(token, options...)
-	if err != nil {
-		return nil, err
-	}
-	service.Client = client
-
-	return service, nil
-}
-
-func (service JiraFormService) Get(key string) (*ddd.JiraForm, error) {
-	response := []jiraFormResponse{}
-	jiraForm := jiraForm{}
-	path := fmt.Sprintf("jira/%s", key)
-	request, err := service.Client.NewRequest(http.MethodGet, path)
-	request.Header.Add("Accept", "application/json")
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = service.Client.Do(request, &response)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unpack the data from jira since each input is wrapped inside a jiraFormResponse
-	jsonData := make(map[string]string)
-	for _, item := range response {
-		jsonData[item.QuestionKey] = strings.TrimSpace(item.Answer)
-	}
-	// Turn the map into a json object so that we can unmarshal it into the jiraForm struct
-	jsonBytes, err := json.Marshal(jsonData)
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(jsonBytes, &jiraForm)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ddd.JiraForm{
-		BudgetAmount:                 jiraForm.BudgetAmount,
-		BudgetContact:                jiraForm.BudgetContact,
-		EntraIDName:                  jiraForm.EntraIDName,
-		Kostnadsoppfolger:            jiraForm.Kostnadsoppfolger,
-		L2Approver:                   jiraForm.L2Approver,
-		ManagementTree:               jiraForm.ManagementTree,
-		Environment:                  jiraForm.Environment,
-		SubscriptionName:             jiraForm.SubscriptionName,
-		VNetSize:                     jiraForm.VNetSize,
-		BusinessBestillerReferanse:   jiraForm.BusinessBestillerReferanse,
-		BusinessOrg:                  jiraForm.BusinessOrg,
-		CreateNewPIM:                 jiraForm.CreateNewPIM,
-		EntraIDGroup:                 jiraForm.EntraIDGroup,
-		Finansiering:                 jiraForm.Finansiering,
-		FinansieringVedProsjektslutt: jiraForm.FinansieringVedProsjektslutt,
-		Forretningsprodukt:           jiraForm.Forretningsprodukt,
-		ManagementGroup:              jiraForm.ManagementGroup,
-		SecurityContact:              jiraForm.SecurityContact,
-	}, nil
 }

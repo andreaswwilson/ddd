@@ -58,7 +58,7 @@ func TestGetJiraForm(t *testing.T) {
 			server := setupTestServer(test.jsonResponse, http.StatusOK)
 			defer server.Close()
 
-			js, _ := NewJiraFormService("", WithBaseURL(server.URL))
+			js, _ := NewService("", WithBaseURL(server.URL))
 			actual, err := js.Get("")
 
 			assert.Nil(t, err)

@@ -22,14 +22,14 @@ func TestValidateMail(t *testing.T) {
 		{"Test that a invalid email returns error", "asfasf", true},
 	}
 
-	client, err := azure.NewGraphServiceClient("", "", "")
+	azureService, err := azure.NewService("", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			err = azure.ValidateMail(client, test.email)
+			err = azureService.ValidateMail(test.email)
 			if test.expectedError {
 				assert.Error(t, err)
 			} else {

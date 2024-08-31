@@ -2,6 +2,7 @@ package azure
 
 import (
 	"context"
+	"ddd"
 	log "ddd/logger"
 	"fmt"
 	"strings"
@@ -14,7 +15,22 @@ import (
 	graphusers "github.com/microsoftgraph/msgraph-sdk-go/users"
 )
 
-func NewGraphServiceClient(armtenantID, servicePrincipalID, servicePrincipalSecret string) (*msgraphsdkgo.GraphServiceClient, error) {
+// Make sure the service implements all methods
+var _ ddd.AzureService = (*Service)(nil)
+
+type Service struct {
+	GraphClient *msgraphsdkgo.GraphServiceClient
+}
+
+func NewService(armtenantID, servicePrincipalID, servicePrincipalSecret string) (*Service, error) {
+	client, err := newGraphServiceClient(armtenantID, servicePrincipalID, servicePrincipalSecret)
+	if err != nil {
+		return nil, err
+	}
+	return &Service{GraphClient: client}, nil
+}
+
+func newGraphServiceClient(armtenantID, servicePrincipalID, servicePrincipalSecret string) (*msgraphsdkgo.GraphServiceClient, error) {
 	var graphClient *msgraphsdkgo.GraphServiceClient
 	if servicePrincipalID == "" || servicePrincipalSecret == "" {
 		// Log in with user credentials that are available after running "az login" for testing locally
@@ -49,7 +65,7 @@ func NewGraphServiceClient(armtenantID, servicePrincipalID, servicePrincipalSecr
 }
 
 // validate email against entra id
-func ValidateMail(graphClient *msgraphsdkgo.GraphServiceClient, mail string) error {
+func (service *Service) ValidateMail(mail string) error {
 	headers := abstractions.NewRequestHeaders()
 	headers.Add("ConsistencyLevel", "eventual")
 	requestFilter := fmt.Sprintf("mail eq '%s'", mail)
@@ -60,7 +76,8 @@ func ValidateMail(graphClient *msgraphsdkgo.GraphServiceClient, mail string) err
 		Headers:         headers,
 		QueryParameters: requestParameters,
 	}
-	result, err := graphClient.Users().Get(context.Background(), configuration)
+
+	result, err := service.GraphClient.Users().Get(context.Background(), configuration)
 	if err != nil {
 		return err
 	}
@@ -68,7 +85,7 @@ func ValidateMail(graphClient *msgraphsdkgo.GraphServiceClient, mail string) err
 	// Initialize iterator
 	pageIterator, err := graphcore.NewPageIterator[*models.User](
 		result,
-		graphClient.GetAdapter(),
+		service.GraphClient.GetAdapter(),
 		models.CreateMessageCollectionResponseFromDiscriminatorValue)
 	if err != nil {
 		return fmt.Errorf("error creating page iterator: %v", err)
