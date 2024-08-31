@@ -29,7 +29,7 @@ func TestValidateMail(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			err = azureService.ValidateMail(test.email)
+			err = azureService.ValidateEmail(test.email)
 			if test.expectedError {
 				assert.Error(t, err)
 			} else {

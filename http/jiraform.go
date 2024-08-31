@@ -13,7 +13,8 @@ import (
 var _ ddd.JiraFormService = (*Service)(nil)
 
 type Service struct {
-	Client *Client
+	Client       *Client
+	AzureService ddd.AzureService
 }
 
 func NewService(token string, options ...ClientOptionFunc) (*Service, error) {
@@ -22,6 +23,31 @@ func NewService(token string, options ...ClientOptionFunc) (*Service, error) {
 		return nil, err
 	}
 	return &Service{Client: client}, nil
+}
+
+type jiraForm struct {
+	BudgetAmount                 int      `json:"budgetAmount,string"`
+	BudgetContact                []string `json:"budgetContact,omitempty"`
+	EntraIDName                  string   `json:"pimApproverNew,omitempty"`
+	Kostnadsoppfolger            string   `json:"kostnadsoppfolger"`
+	L2Approver                   string   `json:"l2Approver"`
+	ManagementTree               string   `json:"managementTree"`
+	Environment                  string   `json:"environment"`
+	SubscriptionName             string   `json:"subscriptionName"`
+	VNetSize                     int      `json:"vnetSize"`
+	BusinessBestillerReferanse   string   `json:"businessBestillerReferanse"`
+	BusinessOrg                  string   `json:"businessOrg"`
+	CreateNewPIM                 bool     `json:"createNewPim"`
+	EntraIDGroup                 string   `json:"entraIDGroup"`
+	Finansiering                 string   `json:"finansiering"`
+	FinansieringVedProsjektslutt string   `json:"finansieringVedProsjektslutt"`
+	Forretningsprodukt           string   `json:"forretningsprodukt"`
+	ManagementGroup              string   `json:"managementGroup"`
+	SecurityContact              []string `json:"securityContact"`
+}
+type jiraFormResponse struct {
+	QuestionKey string `json:"questionKey"`
+	Answer      string `json:"answer"`
 }
 
 func (service Service) Get(key string) (*ddd.JiraForm, error) {
@@ -54,6 +80,15 @@ func (service Service) Get(key string) (*ddd.JiraForm, error) {
 		return nil, err
 	}
 
+	// Validate emails against entra ID
+
+	for _, email := range jiraForm.BudgetContact {
+		err = service.AzureService.ValidateEmail(email)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &ddd.JiraForm{
 		BudgetAmount:                 jiraForm.BudgetAmount,
 		BudgetContact:                jiraForm.BudgetContact,
@@ -76,40 +111,14 @@ func (service Service) Get(key string) (*ddd.JiraForm, error) {
 	}, nil
 }
 
-type jiraFormResponse struct {
-	QuestionKey string `json:"questionKey"`
-	Answer      string `json:"answer"`
-}
-
-type jiraForm struct {
-	BudgetAmount                 int      `json:"budgetAmount,string"`
-	BudgetContact                []string `json:"budgetContact,omitempty"`
-	EntraIDName                  string   `json:"pimApproverNew,omitempty"`
-	Kostnadsoppfolger            string   `json:"kostnadsoppfolger"`
-	L2Approver                   string   `json:"l2Approver"`
-	ManagementTree               string   `json:"managementTree"`
-	Environment                  string   `json:"environment"`
-	SubscriptionName             string   `json:"subscriptionName"`
-	VNetSize                     int      `json:"vnetSize"`
-	BusinessBestillerReferanse   string   `json:"businessBestillerReferanse"`
-	BusinessOrg                  string   `json:"businessOrg"`
-	CreateNewPIM                 bool     `json:"createNewPim"`
-	EntraIDGroup                 string   `json:"entraIDGroup"`
-	Finansiering                 string   `json:"finansiering"`
-	FinansieringVedProsjektslutt string   `json:"finansieringVedProsjektslutt"`
-	Forretningsprodukt           string   `json:"forretningsprodukt"`
-	ManagementGroup              string   `json:"managementGroup"`
-	SecurityContact              []string `json:"securityContact"`
-}
-
 // Overload UnmarshalJSON for JiraForm to turn strings into []strings
 // and to convert vnetSize from string to int
 func (jf *jiraForm) UnmarshalJSON(data []byte) error {
 	type Alias jiraForm
 	tempStruct := &struct {
-		BudsjettVarsling string `json:"budgetContact,omitempty"`
-		SecurityContact  string `json:"securityContact,omitempty"`
-		VNetStørrelse    string `json:"vnetSize,omitempty"`
+		BudgetContact   string `json:"budgetContact,omitempty"`
+		SecurityContact string `json:"securityContact,omitempty"`
+		VNetStørrelse   string `json:"vnetSize,omitempty"`
 		*Alias
 	}{
 		Alias: (*Alias)(jf),
@@ -118,12 +127,12 @@ func (jf *jiraForm) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	// removes all white space, trims leading/trailing commas, and splits based on ","
-	if tempStruct.BudsjettVarsling != "" {
-		jf.BudgetContact = strings.Split(strings.TrimPrefix(strings.TrimSuffix(strings.ReplaceAll(tempStruct.BudsjettVarsling, " ", ""), ","), ","), ",")
+	if tempStruct.BudgetContact != "" {
+		jf.BudgetContact = strings.Split(strings.TrimPrefix(strings.TrimSuffix(strings.ReplaceAll(tempStruct.BudgetContact, " ", ""), ","), ","), ",")
 	}
 	// removes all white space, trims leading/trailing commas, and splits based on ","
 	if tempStruct.SecurityContact != "" {
-		jf.SecurityContact = strings.Split(strings.TrimPrefix(strings.TrimSuffix(strings.ReplaceAll(tempStruct.BudsjettVarsling, " ", ""), ","), ","), ",")
+		jf.SecurityContact = strings.Split(strings.TrimPrefix(strings.TrimSuffix(strings.ReplaceAll(tempStruct.BudgetContact, " ", ""), ","), ","), ",")
 	}
 	// remove / and convert to int
 	if tempStruct.VNetStørrelse != "" {

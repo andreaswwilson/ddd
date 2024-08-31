@@ -8,11 +8,8 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	abstractions "github.com/microsoft/kiota-abstractions-go"
 	msgraphsdkgo "github.com/microsoftgraph/msgraph-sdk-go"
-	graphcore "github.com/microsoftgraph/msgraph-sdk-go-core"
-	"github.com/microsoftgraph/msgraph-sdk-go/models"
-	graphusers "github.com/microsoftgraph/msgraph-sdk-go/users"
+	"github.com/microsoftgraph/msgraph-sdk-go/users"
 )
 
 // Make sure the service implements all methods
@@ -30,11 +27,23 @@ func NewService(armtenantID, servicePrincipalID, servicePrincipalSecret string) 
 	return &Service{GraphClient: client}, nil
 }
 
+// newGraphServiceClient creates a new instance of GraphServiceClient.
+// It uses either service principal credentials or default Azure credentials
+// based on the provided input parameters.
+//
+// Parameters:
+// - armtenantID: The Azure Resource Manager tenant ID. If empty, default credentials are used.
+// - servicePrincipalID: The service principal ID. If empty, default credentials are used.
+// - servicePrincipalSecret: The service principal secret. If empty, default credentials are used.
+//
+// Returns:
+// - *msgraphsdkgo.GraphServiceClient: A pointer to the new GraphServiceClient instance.
+// - error: An error object if any error occurs during the creation of the client.
 func newGraphServiceClient(armtenantID, servicePrincipalID, servicePrincipalSecret string) (*msgraphsdkgo.GraphServiceClient, error) {
 	var graphClient *msgraphsdkgo.GraphServiceClient
-	if servicePrincipalID == "" || servicePrincipalSecret == "" {
+	if armtenantID == "" || servicePrincipalID == "" || servicePrincipalSecret == "" {
 		// Log in with user credentials that are available after running "az login" for testing locally
-		log.Debug("servicePrincipalID or servicePrincipalSecret are empty. Logging in using Default Credentials.")
+		log.Debug("armTenantID, servicePrincipalID or servicePrincipalSecret are empty. Logging in using Default Credentials.")
 		cred, err := azidentity.NewDefaultAzureCredential(nil)
 		if err != nil {
 			return nil, err
@@ -64,16 +73,19 @@ func newGraphServiceClient(armtenantID, servicePrincipalID, servicePrincipalSecr
 	return graphClient, nil
 }
 
-// validate email against entra id
-func (service *Service) ValidateMail(mail string) error {
-	headers := abstractions.NewRequestHeaders()
-	headers.Add("ConsistencyLevel", "eventual")
-	requestFilter := fmt.Sprintf("mail eq '%s'", mail)
-	requestParameters := &graphusers.UsersRequestBuilderGetQueryParameters{
+// ValidateEmail checks if the provided email exists in Entra ID.
+//
+// Parameters:
+// - email: The email address to be validated.
+//
+// Returns:
+// - error: An error object if the email is not found or if any error occurs during the validation process.
+func (service *Service) ValidateEmail(email string) error {
+	requestFilter := fmt.Sprintf("mail eq '%s'", email)
+	requestParameters := &users.UsersRequestBuilderGetQueryParameters{
 		Filter: &requestFilter,
 	}
-	configuration := &graphusers.UsersRequestBuilderGetRequestConfiguration{
-		Headers:         headers,
+	configuration := &users.UsersRequestBuilderGetRequestConfiguration{
 		QueryParameters: requestParameters,
 	}
 
@@ -82,37 +94,15 @@ func (service *Service) ValidateMail(mail string) error {
 		return err
 	}
 
-	// Initialize iterator
-	pageIterator, err := graphcore.NewPageIterator[*models.User](
-		result,
-		service.GraphClient.GetAdapter(),
-		models.CreateMessageCollectionResponseFromDiscriminatorValue)
-	if err != nil {
-		return fmt.Errorf("error creating page iterator: %v", err)
-	}
-	count, stopAfter := 0, 25
-
-	mailExist := false
-	// Iterate over all pages
-	err = pageIterator.Iterate(
-		context.Background(),
-		func(message *models.User) bool {
-			count++
-			if message.GetMail() != nil {
-				if strings.EqualFold(*message.GetMail(), mail) {
-					log.Debug("Found %s in Entra ID", *message.GetMail())
-					mailExist = true
-					return false
-				}
-			}
-			return count < stopAfter
-		})
-	if err != nil {
-		return fmt.Errorf("error iterating over messages: %v", err)
-	}
-	if !mailExist {
-		return fmt.Errorf("couldn't find '%s' in Entra ID", mail)
+	if len(result.GetValue()) == 0 {
+		return fmt.Errorf("couldn't find '%s' in Entra ID", email)
 	}
 
-	return nil
+	for _, user := range result.GetValue() {
+		if strings.EqualFold(*user.GetMail(), email) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("couldn't find '%s' in Entra ID", email)
 }

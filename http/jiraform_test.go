@@ -2,6 +2,7 @@ package http
 
 import (
 	"ddd"
+	"ddd/mock"
 	"net/http"
 	"testing"
 
@@ -59,6 +60,7 @@ func TestGetJiraForm(t *testing.T) {
 			defer server.Close()
 
 			js, _ := NewService("", WithBaseURL(server.URL))
+			js.AzureService = &mock.AzureService{}
 			actual, err := js.Get("")
 
 			assert.Nil(t, err)
