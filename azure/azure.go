@@ -39,9 +39,10 @@ func NewService(armtenantID, servicePrincipalID, servicePrincipalSecret string) 
 // Returns:
 // - *msgraphsdkgo.GraphServiceClient: A pointer to the new GraphServiceClient instance.
 // - error: An error object if any error occurs during the creation of the client.
-func newGraphServiceClient(armtenantID, servicePrincipalID, servicePrincipalSecret string) (*msgraphsdkgo.GraphServiceClient, error) {
+func newGraphServiceClient(armtenantID, servicePrincipalClientID, servicePrincipalSecret string) (*msgraphsdkgo.GraphServiceClient, error) {
+	log.Debug("Creating azure graph service client")
 	var graphClient *msgraphsdkgo.GraphServiceClient
-	if armtenantID == "" || servicePrincipalID == "" || servicePrincipalSecret == "" {
+	if armtenantID == "" || servicePrincipalClientID == "" || servicePrincipalSecret == "" {
 		// Log in with user credentials that are available after running "az login" for testing locally
 		log.Debug("armTenantID, servicePrincipalID or servicePrincipalSecret are empty. Logging in using Default Credentials.")
 		cred, err := azidentity.NewDefaultAzureCredential(nil)
@@ -57,10 +58,13 @@ func newGraphServiceClient(armtenantID, servicePrincipalID, servicePrincipalSecr
 		if err != nil {
 			return nil, err
 		}
-		log.Info("Logged in as %s", *me.GetUserPrincipalName())
+		log.Info("Authenticated against graph.microsoft.com/.default as %s", *me.GetUserPrincipalName())
 	} else {
-		log.Debug("Logging in using service principal %s", servicePrincipalID)
-		cred, err := azidentity.NewClientSecretCredential(armtenantID, servicePrincipalID, servicePrincipalSecret, nil)
+		log.Debug("Logging in using service principal id and password.")
+		log.Debug("armtenantID: %s", armtenantID)
+		log.Debug("servicePrincipalClientID: %s", servicePrincipalClientID)
+		log.Debug("servicePrincipalSecret: %s******************", servicePrincipalSecret[0:3])
+		cred, err := azidentity.NewClientSecretCredential(armtenantID, servicePrincipalClientID, servicePrincipalSecret, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -68,8 +72,9 @@ func newGraphServiceClient(armtenantID, servicePrincipalID, servicePrincipalSecr
 		if err != nil {
 			return nil, err
 		}
-		log.Info("Logged in with client id %s", servicePrincipalID)
+		log.Info("Authenticated against graph.microsoft.com/.default with client_id %s", servicePrincipalClientID)
 	}
+	log.Debug("Azure graph service client created")
 	return graphClient, nil
 }
 

@@ -24,7 +24,6 @@ func NewService(token string, options ...ClientOptionFunc) (*Service, error) {
 		logger.Error("%s", err)
 		return nil, err
 	}
-	logger.Info("%v", client)
 	return &Service{Client: client}, nil
 }
 
