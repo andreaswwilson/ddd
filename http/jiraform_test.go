@@ -1,13 +1,21 @@
-package http
+package http_test
 
 import (
 	"ddd"
+	dddhttp "ddd/http"
 	"ddd/mock"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+type Service struct {
+	*dddhttp.Service
+
+	// Mock services
+	AzureService mock.AzureService
+}
 
 func TestGetJiraForm(t *testing.T) {
 	t.Parallel()
@@ -59,9 +67,16 @@ func TestGetJiraForm(t *testing.T) {
 			server := setupTestServer(test.jsonResponse, http.StatusOK)
 			defer server.Close()
 
-			js, _ := NewService("", WithBaseURL(server.URL))
-			js.AzureService = &mock.AzureService{}
-			actual, err := js.Get("")
+			// Create regular service
+			newService, _ := dddhttp.NewService("", dddhttp.WithBaseURL(server.URL))
+			s := &Service{Service: newService}
+			// Assign mock service
+			s.Service.AzureService = &s.AzureService
+			// Always return nil for validateEmail
+			s.AzureService.ValidateEmailFn = func(email string) error {
+				return nil
+			}
+			actual, err := s.Get("")
 
 			assert.Nil(t, err)
 			assert.Equal(t, test.expected, actual)

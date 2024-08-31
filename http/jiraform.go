@@ -2,6 +2,7 @@ package http
 
 import (
 	"ddd"
+	"ddd/logger"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -20,8 +21,10 @@ type Service struct {
 func NewService(token string, options ...ClientOptionFunc) (*Service, error) {
 	client, err := newClient(token, options...)
 	if err != nil {
+		logger.Error("%s", err)
 		return nil, err
 	}
+	logger.Info("%v", client)
 	return &Service{Client: client}, nil
 }
 
@@ -81,7 +84,6 @@ func (service Service) Get(key string) (*ddd.JiraForm, error) {
 	}
 
 	// Validate emails against entra ID
-
 	for _, email := range jiraForm.BudgetContact {
 		err = service.AzureService.ValidateEmail(email)
 		if err != nil {

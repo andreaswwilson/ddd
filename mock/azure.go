@@ -4,8 +4,10 @@ import "ddd"
 
 var _ ddd.AzureService = (*AzureService)(nil)
 
-type AzureService struct{}
+type AzureService struct {
+	ValidateEmailFn func(email string) error
+}
 
 func (s *AzureService) ValidateEmail(email string) error {
-	return nil
+	return s.ValidateEmailFn(email)
 }
