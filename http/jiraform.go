@@ -11,7 +11,7 @@ import (
 )
 
 // Make sure the service implements all methods
-var _ ddd.JiraFormService = (*Service)(nil)
+var _ ddd.NewSubscriptionOrderService = (*Service)(nil)
 
 type Service struct {
 	Client       *Client
@@ -52,7 +52,7 @@ type jiraFormResponse struct {
 	Answer      string `json:"answer"`
 }
 
-func (service Service) Get(key string) (*ddd.JiraForm, error) {
+func (service Service) Get(key string) (*ddd.NewSubscriptionOrder, error) {
 	response := []jiraFormResponse{}
 	jiraForm := jiraForm{}
 	path := fmt.Sprintf("jira/%s", key)
@@ -90,7 +90,7 @@ func (service Service) Get(key string) (*ddd.JiraForm, error) {
 		}
 	}
 
-	return &ddd.JiraForm{
+	return &ddd.NewSubscriptionOrder{
 		BudgetAmount:                 jiraForm.BudgetAmount,
 		BudgetContact:                jiraForm.BudgetContact,
 		EntraIDName:                  jiraForm.EntraIDName,

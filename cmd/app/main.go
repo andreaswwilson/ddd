@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	azureService, err := azure.NewService("", "", "")
+	azureService, err := azure.NewService()
 	if err != nil {
 		logger.Error("%s", err)
 		os.Exit(1)

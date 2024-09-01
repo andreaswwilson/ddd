@@ -1,6 +1,6 @@
 package ddd
 
-type JiraForm struct {
+type NewSubscriptionOrder struct {
 	BudgetAmount                 int
 	BudgetContact                []string
 	EntraIDName                  string
@@ -21,6 +21,6 @@ type JiraForm struct {
 	SecurityContact              []string
 }
 
-type JiraFormService interface {
-	Get(key string) (*JiraForm, error)
+type NewSubscriptionOrderService interface {
+	Get(key string) (*NewSubscriptionOrder, error)
 }

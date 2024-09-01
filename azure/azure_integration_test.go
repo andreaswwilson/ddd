@@ -22,7 +22,7 @@ func TestValidateMail(t *testing.T) {
 		{"Test that a invalid email returns error", "asfasf", true},
 	}
 
-	azureService, err := azure.NewService("", "", "")
+	azureService, err := azure.NewService()
 	if err != nil {
 		t.Fatal(err)
 	}
