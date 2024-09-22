@@ -53,7 +53,7 @@ func newGraphServiceClient() (*msgraphsdkgo.GraphServiceClient, error) {
 // Parameters:
 // - email: The email address to be validated.
 //
-// Returns:
+// Returns: nil if email exist Entra ID
 // - error: An error object if the email is not found or if any error occurs during the validation process.
 func (service *Service) ValidateEmail(email string) error {
 	requestFilter := fmt.Sprintf("mail eq '%s'", email)
@@ -80,4 +80,13 @@ func (service *Service) ValidateEmail(email string) error {
 	}
 
 	return fmt.Errorf("couldn't find '%s' in Entra ID", email)
+}
+
+func (s *Service) GetSubscriptionID(displayname string) (string, error) {
+	subscriptions, err := s.GraphClient.Subscriptions().Get(context.Background(), nil)
+	if err != nil {
+		return "", fmt.Errorf("GetSubscriptionID: couldn't get subscriptions: %w", err)
+	}
+	fmt.Println(subscriptions)
+	return "", nil
 }

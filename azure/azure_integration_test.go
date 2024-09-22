@@ -1,6 +1,3 @@
-//go:build integration
-// +build integration
-
 package azure_test
 
 import (
@@ -18,7 +15,7 @@ func TestValidateMail(t *testing.T) {
 		email         string
 		expectedError bool
 	}{
-		{"Test that a valid email returns nil", "skattejakten@skatteetaten.no", false},
+		{"Test that a valid email returns nil", "andreasw@gmail.com", false},
 		{"Test that a invalid email returns error", "asfasf", true},
 	}
 
